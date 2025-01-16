@@ -1,0 +1,18 @@
+remetentes -> escrever mensagens
+cripters -> criptografar mensagens
+batch sender -> enviar mensagens
+decripters -> desciptografar mensagens
+destinatário -> ler mensagens
+
+9   
+8   
+7   X
+6   X
+5   X
+4   X
+3   
+2   
+1   
+0   
+
+
