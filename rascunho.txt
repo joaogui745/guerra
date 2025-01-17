@@ -6,13 +6,14 @@ destinatário -> ler mensagens
 
 9   
 8   
-7   X
-6   X
-5   X
-4   X
-3   
-2   
-1   
-0   
+7   
+6   
+5   
+4   
+3   d   a
+2   c   b
+1   b   c
+0   a   d   
+    ME  MR
 
 

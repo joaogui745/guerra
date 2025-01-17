@@ -3,8 +3,8 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#define PR 2
-#define CN 1
+#define PR 5
+#define CN 5
 #define N 5
 
 
@@ -31,7 +31,6 @@ char *argv[];
 
   pthread_t tid[PR];
 
-  srand48(time(NULL));
   for (i = 0; i < PR; i++)
   {
     id = (int *) malloc(sizeof(int));
@@ -67,8 +66,8 @@ char *argv[];
 void * produtor (void* pi){
   while(1)  {
     printf("produtor %d: vou produzir um item \n", *(int *)(pi));
-    int item = (int) (drand48() * 1000.0);
-    sleep(10);
+    int item = (int) (rand() * 1000.0);
+    //sleep(10);
 
     pthread_mutex_lock(&mutex);
 	    while(contador == N) {
@@ -113,7 +112,7 @@ void * consumidor (void* pi){
 	    }
    pthread_mutex_unlock(&mutex); 
    printf("consumidor %d: vou consumir item %d \n", *(int *)(pi),lido);
-   sleep(1);
+   //sleep(1);
 
  }
   pthread_exit(0);

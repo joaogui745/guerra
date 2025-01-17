@@ -3,7 +3,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#define PR 1 //número de produtores
+#define PR 5 //número de produtores
 #define CN 1 // número de consumidores
 #define N 5  //tamanho do buffer
 
@@ -67,7 +67,7 @@ void * produtor (void* pi){
 			printf("Item %d inserido na posicao %d\n", buffer[ptr_prod % N], ptr_prod % N);
 			ptr_prod++;
 			if ((ptr_prod - 2) % N == ptr_cons % N){
-				pthread_cond_signal(&buffer_cond);
+				pthread_cond_broadcast(&buffer_cond);
 			}
 		pthread_mutex_unlock(&buffer_lock);
 	}
@@ -77,7 +77,7 @@ void * produtor (void* pi){
 void * consumidor (void* pi){
 	int item;
  	while(1){
-		sleep(rand() % 3);
+		//sleep(rand() % 3);
 		pthread_mutex_lock(&buffer_lock);
 			while ((ptr_cons + 1) % N == (ptr_prod % N) ){
 				pthread_cond_wait(&buffer_cond, &buffer_lock);
@@ -87,7 +87,7 @@ void * consumidor (void* pi){
 			printf("Item %d retirado da posicao %d\n", item, ptr_cons % N);
 			buffer[ptr_cons] = 0;
 			if ((ptr_prod + 1) % N == ptr_cons % N){
-				pthread_cond_signal(&buffer_cond);
+				pthread_cond_broadcast(&buffer_cond);
 			}
 		pthread_mutex_unlock(&buffer_lock);
   	}
