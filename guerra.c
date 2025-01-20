@@ -4,15 +4,18 @@
 #include <unistd.h>
 #include <string.h>
 
+// Aluno João Guilherme Silva Ribeiro
+// Mat: 222011641
 
-#define QTO 5  		// Capacidade criação de ordens
+
+#define QTO 3  		// Capacidade criação de ordens
 #define QTB	10		// Capacidade recebimendo de ordens
-#define MMAX 30		// tamanho máximo de uma mensagem
+#define MMAX 40		// tamanho máximo de uma mensagem
 #define CAPOMBO 2	// Capacidade do pombo
 
 #define G 2			// Capacidade Generais
-#define C 2			// Capacidade Sargentos
-#define T 2			// Capacidade Tenentes
+#define C 3			// Capacidade Cabos
+#define T 3			// Capacidade Tenentes
 #define P 2			// Capacidade Pombos
 
 // Range Inclusivo []
@@ -21,17 +24,20 @@
 #define RANGE RG_END - RG_INIT + 1
 
 
-
+// Buffers dos processos 
 char* mesa_general[QTO];
 char* mochila_envio[CAPOMBO];
 char* mochila_destino[CAPOMBO];
 char* mesa_cabo[QTB];
 
+// Índices dos buffers
 int ptr_general = 1;
 int ptr_mochila = 0;
 int ptr_cabo = 0;
 int ptr_tenente = 0;
 
+
+// Material para geração de ordens
 char specs[6][15] = {
 	"Infantaria",
 	"Cavalaria",
@@ -49,8 +55,9 @@ char cordenadas[6][10] = {
 	"epsilon",
 	"phi"
 };
-char* chave = "brasilacimadetudo";
+char* chave = "gigantepelaproprianatureza";
 
+// Mecanismos de sincronização dos processos
 pthread_mutex_t lock_mensagem = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond_mensagem = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t lock_pombo = PTHREAD_MUTEX_INITIALIZER;
@@ -58,23 +65,27 @@ pthread_cond_t cond_tenente = PTHREAD_COND_INITIALIZER;
 pthread_cond_t cond_pombo = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t lock_cabo = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond_cabo = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t lock_msn_unica = PTHREAD_MUTEX_INITIALIZER;
 
+// Atores do problema
 void* general(void* meuid);
-char* pensa_ordem();
-
 void* tenente(void* meuid);
+void* pombo(void* meuid);
+void* cabo(void* meuid);
+
+// funções Auxiliares
+char* pensa_ordem();
 char* codifica(char* mensagem, char* chave);
 char* decodifica(char* cifra, char* chave);
 int modulo(int a, int b);
 
-void* pombo(void* meuid);
-void* cabo(void* meuid);
-
-
 int main(){
 	pthread_t gen[G], cab[C], ten[T], pru[P];
+	int* ptr_gen;
 	for (int i = 0; i < G; i++){
-		pthread_create(&gen[i], NULL, general, NULL);	
+		ptr_gen = (int*) malloc(sizeof(int));
+		*ptr_gen = i;
+		pthread_create(&gen[i], NULL, general, ptr_gen);	
 	}
 	
 	for (int i = 0; i < T; i++){
@@ -96,20 +107,9 @@ int main(){
 void* general(void* meuid){
 	int ptr_mod;
 	while(1){
-		char* ordem = pensa_ordem();
-		sleep(3);
-		/*pthread_mutex_lock(&lock_mensagem);
-			while (ptr_general == QTO){
-				pthread_cond_wait(&cond_mensagem, &lock_mensagem);
-			}
-			mesa_general[ptr_general] = ordem;
-			printf("Ordem: \"%s\" inserida na posicao %d\n", mesa_general[ptr_general], ptr_general);
-			ptr_general++;
-			if (ptr_general == 1){
-				pthread_cond_signal(&cond_mensagem);
-			}
-		pthread_mutex_unlock(&lock_mensagem);*/
-
+		// Pensa e insere a ordem
+		char* ordem = pensa_ordem(*((int*) meuid));
+		sleep(rand() % 3);
 		pthread_mutex_lock(&lock_mensagem);
 			while (ptr_general % QTO == ptr_tenente % QTO){
 				pthread_cond_wait(&cond_mensagem, &lock_mensagem);
@@ -130,33 +130,8 @@ void* tenente(void* meuid){
 	char* mensagem; 
 	char* cripta;
  	while(1){
-		sleep(3);
-		/*
-		pthread_mutex_lock(&lock_mensagem);
-			while (ptr_general == 0){
-				pthread_cond_wait(&cond_mensagem, &lock_mensagem);
-			}
-			ptr_general--;
-			char* mensagem = mesa_general[ptr_general];
-			printf("Ordem: \"%s\" retirada da posicao %d\n", mensagem, ptr_general);
-			if (ptr_general == QTO - 1){
-				pthread_cond_signal(&cond_mensagem);
-			}
-		pthread_mutex_unlock(&lock_mensagem);
-		char* cripta = codifica(mensagem, chave);
-		free(mensagem);
-		pthread_mutex_lock(&lock_pombo);
-			while(ptr_mochila >= CAPOMBO){
-				pthread_cond_wait(&cond_tenente, &lock_pombo);
-			}
-			mochila_envio[ptr_mochila] = cripta;
-			printf("Cripta \"%s\" colocada na posicao %d da mochila\n", mochila_envio[ptr_mochila], ptr_mochila);
-			ptr_mochila++;
-			if (ptr_mochila == CAPOMBO){
-				pthread_cond_signal(&cond_pombo);
-			}
-		pthread_mutex_unlock(&lock_pombo); */
-
+		sleep(rand() % 3);
+		// Retira a ordem da mesa do General
 		pthread_mutex_lock(&lock_mensagem);
 			while ((ptr_tenente + 1) % QTO == (ptr_general % QTO) ){
 				pthread_cond_wait(&cond_mensagem, &lock_mensagem);
@@ -169,8 +144,12 @@ void* tenente(void* meuid){
 				pthread_cond_broadcast(&cond_mensagem);
 			}
 		pthread_mutex_unlock(&lock_mensagem);
+
+		// Ciptografa a mensagem
 		cripta = codifica(mensagem, chave);
 		free(mensagem);
+
+		// Coloca a cifra na mochila de envio
 		pthread_mutex_lock(&lock_pombo);
 			while(ptr_mochila >= CAPOMBO){
 				pthread_cond_wait(&cond_tenente, &lock_pombo);
@@ -189,6 +168,7 @@ void* tenente(void* meuid){
 
 void* pombo(void* meuid){
 	while(1){
+		// Transfere as mensagens entre as mochilas
 		pthread_mutex_lock(&lock_pombo);
 			while (ptr_mochila != CAPOMBO){
 				pthread_cond_wait(&cond_pombo, &lock_pombo);
@@ -201,8 +181,9 @@ void* pombo(void* meuid){
 		pthread_mutex_unlock(&lock_pombo);
 
 		printf("Tranferindo Mensagens...\n");
-		sleep(1);
+		sleep(rand() % 3);
 		
+		// Adiciona as mensagem na mesa do Cabo
 		pthread_mutex_lock(&lock_cabo);
 			while (ptr_cabo > QTB - CAPOMBO){
 				pthread_cond_wait(&cond_cabo, &lock_cabo);
@@ -224,6 +205,7 @@ void* cabo(void* meuid){
 	char* cripta;
 	char* mensagem;
 	while(1){
+		// Retira as cifra de sua mesa
 		pthread_mutex_lock(&lock_cabo);
 				while (ptr_cabo == 0){
 					pthread_cond_wait(&cond_cabo, &lock_cabo);
@@ -235,17 +217,21 @@ void* cabo(void* meuid){
 					pthread_cond_signal(&cond_cabo);
 				}
 		pthread_mutex_unlock(&lock_cabo);
+
+		// Desciptrografa a mensagem
 		mensagem = decodifica(cripta, chave);
 		free(cripta);
+		sleep(1);
+		// Executa a ordem
 		printf("A Mensagem eh: \"%s\"\n", mensagem);
 		free(mensagem);
 	}
 
 }
 
-char* pensa_ordem(){
+char* pensa_ordem(int id){
 	char* ordem = (char*) malloc(MMAX);
-	strcpy(ordem, ordens_possiveis[rand() % 4]);
+	sprintf(ordem, "%s em %s", specs[(rand() + id) % 6], cordenadas[(rand() + id) % 6]);
 	return ordem;
 }
 
@@ -258,7 +244,7 @@ char* codifica(char* mensagem, char* chave){
     for (int i = 0; i < tmn_mensagem; i++){
         c_mensagem = mensagem[i];
         c_chave = chave[i % tmn_chave];
-
+		// Calcula o deslocamento da criptografia
         c_cifra = modulo( (c_chave - RG_INIT ) + (c_mensagem - RG_INIT), RANGE) + RG_INIT;
         cifra[i] = c_cifra;
     }
@@ -273,9 +259,9 @@ char* decodifica(char* cifra, char* chave){
     int c_cifra, c_chave, c_mensagem;
 
     for (int i = 0; i < tmn_cifra; i++){
+		// Desfaz o deslocamento da criptografia
         c_cifra = cifra[i];
         c_chave = chave[i % tmn_chave];
-
         c_mensagem = modulo(c_cifra - c_chave, RANGE) + RG_INIT;
         mensagem[i] = c_mensagem;
     }
@@ -283,6 +269,7 @@ char* decodifica(char* cifra, char* chave){
     return mensagem;
 }
 
+// Calcula o módulo matemático entre dois numeros inteiros
 int modulo(int a, int b) {
   int m = a % b;
   if (m < 0) {
